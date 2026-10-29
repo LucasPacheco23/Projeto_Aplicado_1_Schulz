@@ -1,188 +1,444 @@
-# MVP — Parte 1: Sistema de Calibração Schulz S.A.
+# PROJETO APLICADO I - SCHULZ S.A.
 
-**Unidade Curricular:** Projeto Aplicado I  
-**Empresa parceira:** Schulz S.A.  
-**Entrega:** AV03 — Construção do MVP (Parte 1)  
-**Linguagem:** Java  
-**Banco de dados:** SQLite  
-**Acesso ao banco:** JDBC
+## AV03: Construção do MVP (Parte 1)
+
+**Unidade Curricular:** Projeto Aplicado I
+
+**Empresa Parceira:** Schulz S.A.
+
+**Linguagem de Programação:** Python
+
+**Banco de Dados:** SQLite
+
+**Professores:** Prof. MSc. Hugo Menezes Barra | Prof. Rodrigo Losina
 
 ---
 
-## 1. Objetivo
+## 1. Objetivo do MVP
 
-Esta etapa implementa a primeira versão funcional de um sistema de calibração, utilizando programação orientada a objetos em Java e persistência de dados em SQLite.
+O objetivo desta etapa é implementar a primeira versão funcional do sistema
+de calibração da Schulz S.A., utilizando Programação Orientada a Objetos (POO)
+em Python e conexão com um banco de dados relacional SQLite.
 
-O sistema representa técnicos, equipamentos e medições de calibração. Também calcula o resultado de uma medição com base nos limites mínimo e máximo aceitáveis e apresenta um relatório que relaciona os registros das três entidades.
+Nas etapas anteriores, foram desenvolvidos os arquivos de documentação da
+estrutura do projeto, o dicionário de dados e o script SQL responsável pela
+criação das tabelas do banco.
 
-## 2. Organização do projeto
+Nesta etapa, o projeto evolui para a implementação das classes de domínio,
+da camada de persistência e de um programa principal para demonstrar o
+funcionamento do sistema.
 
-O código Java está organizado no projeto Maven `calibracao-java`.
+O MVP permite representar técnicos, equipamentos e medições, validar dados,
+calcular a média e o desvio padrão de duas leituras e registrar resultados
+no banco de dados.
+
+A aprovação implementada nesta versão considera a média das duas leituras
+em relação aos limites mínimo e máximo de tolerância cadastrados.
+
+Esta versão representa a primeira parte do sistema. A importação de planilhas
+Excel, o cálculo completo de incerteza e a geração automática dos certificados
+de calibração não fazem parte do escopo implementado nesta etapa.
+
+---
+
+## 2. Estrutura dos arquivos
+
+O código foi organizado em arquivos separados para facilitar a manutenção
+e separar as responsabilidades de cada componente.
+
+A estrutura relevante para a AV03 é apresentada a seguir:
 
 ```text
-calibracao-java/
-├── pom.xml
-└── src/
-    └── main/
-        └── java/
-            └── br/
-                └── com/
-                    └── schulz/
-                        ├── Main.java
-                        ├── dao/
-                        │   ├── ConexaoBanco.java
-                        │   ├── TecnicoDAO.java
-                        │   ├── EquipamentoDAO.java
-                        │   └── MedicaoDAO.java
-                        └── model/
-                            ├── Tecnico.java
-                            ├── Equipamento.java
-                            └── Medicao.java
+versao_python/
+|
+|-- classes/
+|   |-- __init__.py
+|   |-- tecnico.py
+|   |-- equipamento.py
+|   |-- medicao.py
+|   |-- banco_dados.py
+|
+|-- 05_main.py
+|-- gerar_mvp_parte1_md.py
+|-- 06_mvp_parte1.md
+|-- 03_banco.sql
+|-- executar_banco.py
+|-- schulz_calibracao.db
 ```
 
-Os arquivos de banco de dados, scripts Python e documentos das etapas anteriores permanecem na pasta principal do projeto.
+### 2.1. Responsabilidade dos arquivos
 
-## 3. Programação orientada a objetos
+| Arquivo | Responsabilidade |
+| :--- | :--- |
+| `tecnico.py` | Define a classe `Tecnico` e valida os dados cadastrais do profissional. |
+| `equipamento.py` | Define a classe `Equipamento` e valida os dados do equipamento. |
+| `medicao.py` | Define a classe `Medicao`, calcula estatísticas e avalia o resultado por tolerância. |
+| `banco_dados.py` | Centraliza a conexão SQLite e as operações de persistência e consulta. |
+| `__init__.py` | Expõe as classes do pacote para facilitar as importações. |
+| `05_main.py` | Executa a demonstração funcional, cadastra dados de teste e apresenta o relatório. |
+| `03_banco.sql` | Contém as instruções SQL para a estrutura relacional do banco. |
+| `schulz_calibracao.db` | Armazena os registros persistidos no SQLite. |
+| `gerar_mvp_parte1_md.py` | Gera automaticamente esta documentação em Markdown. |
 
-### 3.1. Classe `Tecnico`
+---
 
-Representa o profissional responsável pela medição. Seus atributos incluem identificador, nome, matrícula, e-mail e setor.
+## 3. Programação Orientada a Objetos (POO)
 
-A classe encapsula esses dados por meio de atributos privados e métodos de acesso.
+A implementação utiliza classes e objetos para representar as entidades
+principais do sistema.
 
-### 3.2. Classe `Equipamento`
+### 3.1. Classe Tecnico
 
-Representa o instrumento ou equipamento submetido à calibração. Contém identificador, código de identificação (tag), nome, fabricante e modelo.
+A classe `Tecnico`, definida em `classes/tecnico.py`, representa o profissional
+responsável pelas atividades de medição e calibração.
 
-### 3.3. Classe `Medicao`
+Seus atributos são:
 
-Representa o registro de uma medição. Seus atributos incluem os identificadores do equipamento e do técnico, parâmetro medido, valor nominal, limites mínimo e máximo, valor obtido, resultado e data da medição.
+- `id_tecnico`: identificador do técnico no banco de dados.
+- `nome_tecnico`: nome do profissional.
+- `matricula`: matrícula única do profissional.
+- `email`: endereço de e-mail.
+- `setor`: setor de atuação.
 
-O método `validarResultado()` aplica a regra:
+O método `validar()` verifica se os campos obrigatórios foram preenchidos.
 
-- `APROVADO`: quando o valor obtido está entre os limites mínimo e máximo, inclusive.
-- `REPROVADO`: quando o valor obtido está fora desse intervalo.
+### 3.2. Classe Equipamento
 
-O resultado é calculado pela classe a partir dos valores da medição.
+A classe `Equipamento`, definida em `classes/equipamento.py`, representa a
+máquina ou o instrumento submetido à calibração.
 
-### 3.4. Classes de acesso a dados (DAO)
+Seus atributos são:
 
-As classes `TecnicoDAO`, `EquipamentoDAO` e `MedicaoDAO` concentram as operações SQL referentes às respectivas entidades.
+- `id_equipamento`: identificador do equipamento no banco de dados.
+- `codigo_tag`: código de identificação único do equipamento.
+- `nome_equipamento`: nome ou descrição do equipamento.
+- `fabricante`: fabricante do equipamento.
+- `modelo`: modelo do equipamento.
 
-A classe `ConexaoBanco` centraliza a abertura da conexão JDBC com o banco SQLite.
+O método `validar()` verifica o preenchimento dos campos obrigatórios.
 
-Essa separação mantém as responsabilidades de domínio, persistência e execução principal organizadas.
+### 3.3. Classe Medicao
+
+A classe `Medicao`, definida em `classes/medicao.py`, representa o registro
+de uma avaliação de um parâmetro do equipamento.
+
+Seus atributos incluem:
+
+- `id_medicao`: identificador da medição.
+- `id_equipamento`: referência ao equipamento avaliado.
+- `id_tecnico`: referência ao técnico responsável.
+- `parametro_medido`: descrição do parâmetro avaliado.
+- `valor_nominal`: valor de referência.
+- `tolerancia_min`: limite inferior aceitável.
+- `tolerancia_max`: limite superior aceitável.
+- `medida_1`: primeira leitura realizada.
+- `medida_2`: segunda leitura realizada.
+
+A classe disponibiliza as seguintes propriedades e métodos:
+
+- `validar()`: verifica os dados da medição e a consistência do intervalo
+  de tolerância.
+- `media`: calcula a média aritmética das duas leituras.
+- `desvio_padrao`: calcula o desvio padrão amostral das duas leituras.
+- `status_resultado`: retorna `APROVADO` quando a média está dentro dos
+  limites de tolerância, inclusive nos limites, ou `REPROVADO` caso contrário.
+
+Nesta implementação, `tolerancia_min` e `tolerancia_max` representam
+diretamente os limites inferior e superior da faixa aceitável.
+
+O cálculo do desvio padrão utiliza a função `stdev` do módulo `statistics`
+da biblioteca padrão do Python.
+
+### 3.4. Classe BancoDados
+
+A classe `BancoDados`, definida em `classes/banco_dados.py`, é responsável
+pelo acesso ao banco SQLite.
+
+Suas responsabilidades incluem:
+
+- Abrir conexões com o banco de dados.
+- Ativar a verificação de chaves estrangeiras nas conexões.
+- Inserir registros de técnicos, equipamentos e medições.
+- Consultar técnicos e equipamentos por seus identificadores únicos.
+- Consultar medições relacionadas a técnicos e equipamentos.
+- Atualizar registros existentes.
+- Executar consultas relacionais por meio de `INNER JOIN`.
+
+Essa separação evita concentrar as instruções SQL nas classes de domínio
+e facilita a manutenção do acesso aos dados.
+
+---
 
 ## 4. Diagrama textual das classes
 
+O diagrama abaixo representa as principais classes e seus relacionamentos
+no MVP implementado.
+
 ```text
-Main
- ├── TecnicoDAO
- ├── EquipamentoDAO
- └── MedicaoDAO
-       └── ConexaoBanco
++-----------------------+
+|        Tecnico        |
++-----------------------+
+| id_tecnico            |
+| nome_tecnico          |
+| matricula             |
+| email                 |
+| setor                 |
++-----------------------+
+| validar()             |
++-----------------------+
+           |
+           | 1
+           |
+           | N
++-----------------------+       +-----------------------+
+|        Medicao        |       |      Equipamento      |
++-----------------------+       +-----------------------+
+| id_medicao            |       | id_equipamento        |
+| id_tecnico            |       | codigo_tag            |
+| id_equipamento        |       | nome_equipamento      |
+| parametro_medido      |       | fabricante            |
+| valor_nominal         |       | modelo                |
+| tolerancia_min        |       +-----------------------+
+| tolerancia_max        |                   |
+| medida_1              |                   | 1
+| medida_2              |                   |
++-----------------------+                   | N
+| validar()             |                   |
+| media                 |                   |
+| desvio_padrao         |                   |
+| status_resultado      |                   |
++-----------------------+-------------------+
 
-Tecnico
- └── idTecnico, nomeTecnico, matricula, email, setor
-
-Equipamento
- └── idEquipamento, codigoTag, nomeEquipamento,
-     fabricante, modelo
-
-Medicao
- └── idMedicao, idEquipamento, idTecnico,
-     parametroMedido, valorNominal, toleranciaMin,
-     toleranciaMax, valorObtido, statusResultado,
-     dataMedicao
-       └── validarResultado()
++------------------------------------------+
+|                BancoDados                |
++------------------------------------------+
+| caminho                                  |
++------------------------------------------+
+| conectar()                               |
+| salvar_tecnico()                         |
+| buscar_tecnico()                         |
+| atualizar_tecnico()                      |
+| salvar_equipamento()                     |
+| buscar_equipamento()                     |
+| atualizar_equipamento()                  |
+| salvar_medicao()                         |
+| atualizar_medicao()                      |
+| listar_medicoes()                        |
++------------------------------------------+
 ```
 
-Relacionamentos no banco:
+**Interpretação do diagrama:**
 
-- Um técnico pode estar associado a várias medições.
-- Um equipamento pode estar associado a várias medições.
-- Cada medição referencia um técnico e um equipamento.
+- Um técnico pode estar relacionado a várias medições.
+- Um equipamento pode estar relacionado a várias medições.
+- Cada medição está vinculada a um técnico e a um equipamento.
+- `BancoDados` executa as operações de persistência utilizadas pelas
+  classes e pelo programa principal.
 
-## 5. Persistência com SQLite
+As associações entre as entidades são implementadas por chaves estrangeiras
+na tabela `medicao`.
 
-O sistema utiliza JDBC para se conectar ao arquivo `schulz_calibracao.db`.
+---
 
-As classes DAO utilizam comandos SQL preparados (`PreparedStatement`) para executar operações de persistência.
+## 5. Persistência e integridade no SQLite
 
-As operações implementadas incluem:
+O banco de dados utilizado é o arquivo `schulz_calibracao.db`, com três
+tabelas principais: `tecnico`, `equipamento` e `medicao`.
 
-- **INSERT:** inserção de técnicos, equipamentos e medições.
-- **SELECT:** listagem e busca de técnicos e equipamentos, listagem de medições e consulta do relatório.
-- **UPDATE:** atualização de técnicos, equipamentos e medições.
-- **DELETE:** exclusão de técnicos, equipamentos e medições.
+### 5.1. Chaves primárias e estrangeiras
 
-Os métodos de atualização e exclusão retornam um valor booleano indicando se alguma linha foi afetada.
+Cada tabela possui uma chave primária para identificar seus registros.
 
-A exclusão de registros relacionados pode ser impedida pelas restrições de integridade referencial do banco.
+A tabela `medicao` possui as chaves estrangeiras `id_equipamento` e
+`id_tecnico`, que estabelecem o relacionamento com as tabelas de equipamento
+e técnico, respectivamente.
 
-## 6. Consulta relacional e relatório
+Esses relacionamentos permitem consultar os dados de uma medição juntamente
+com as informações do equipamento e do profissional responsável.
 
-O método `listarRelatorioCalibracao()` da classe `MedicaoDAO` utiliza `INNER JOIN` entre as tabelas de medições, equipamentos e técnicos.
+### 5.2. Operações SQL
 
-O relatório apresenta o identificador da medição, código e nome do equipamento, nome do técnico, parâmetro medido, valor nominal, limites de tolerância, valor obtido, resultado e data.
+A camada de persistência utiliza as seguintes operações:
 
-Essa consulta demonstra a recuperação conjunta de informações relacionadas no banco relacional.
+| Operação | Finalidade |
+| :--- | :--- |
+| `INSERT` | Inserir técnicos, equipamentos e medições. |
+| `SELECT` | Consultar registros individuais e listar medições. |
+| `UPDATE` | Atualizar dados de técnicos, equipamentos e medições. |
+| `INNER JOIN` | Relacionar medições aos seus equipamentos e técnicos. |
 
-## 7. Tratamento de erros SQL
+As consultas utilizam parâmetros SQL para separar os valores fornecidos
+das instruções executadas.
 
-As operações de persistência declaram a possibilidade de ocorrência de `SQLException`.
+O uso de `PRAGMA foreign_keys = ON` nas conexões habilita a verificação
+das chaves estrangeiras pelo SQLite.
 
-As conexões, instruções SQL e resultados de consulta são gerenciados com `try-with-resources`, que fecha os recursos automaticamente ao final do bloco.
+A implementação atual não possui um método de exclusão (`DELETE`) na
+camada `BancoDados`. Essa operação poderá ser acrescentada em uma evolução
+posterior, respeitando as restrições de integridade referencial.
 
-A classe `Main` captura exceções SQL e apresenta uma mensagem de erro no terminal. Isso permite informar falhas de execução sem encerrar o fluxo com uma exceção não tratada nesse ponto.
+### 5.3. Gerenciamento das transações
 
-## 8. Validação do fluxo funcional
+As operações de escrita utilizam o gerenciamento de transações do SQLite.
+Quando uma operação termina corretamente, a transação é confirmada.
+Se ocorrer uma exceção durante a transação, o SQLite desfaz as alterações
+daquela transação.
 
-A classe `Main` coordena a demonstração do sistema:
+As conexões são fechadas após as operações por meio do gerenciador
+de contexto `closing`.
 
-1. Localiza o técnico de demonstração pela matrícula.
-2. Localiza o equipamento pela tag.
-3. Verifica se já existe uma medição para a combinação de equipamento, técnico e parâmetro utilizada na demonstração.
-4. Insere a medição caso essa combinação ainda não exista.
-5. Consulta as quantidades de técnicos, equipamentos e medições.
-6. Executa a consulta relacional e apresenta o relatório de calibração.
+---
 
-A verificação da medição é específica para o fluxo de demonstração. Ela não substitui uma regra geral de unicidade para todas as medições.
+## 6. Validação das regras de negócio
 
-### Resultado observado na execução
+A validação é executada antes de persistir os objetos no banco.
 
-Na execução realizada no VS Code, o Maven concluiu o programa com `BUILD SUCCESS`.
+### 6.1. Validação do técnico
 
-O terminal apresentou:
+O método `validar()` verifica se nome, matrícula, e-mail e setor foram
+preenchidos.
 
-- 1 técnico cadastrado;
-- 1 equipamento cadastrado;
-- 1 medição cadastrada;
-- valor nominal de 10,0;
-- limite mínimo de 9,5;
-- limite máximo de 10,5;
-- valor obtido de 10,1;
-- resultado `APROVADO`.
+### 6.2. Validação do equipamento
 
-O relatório exibiu os dados relacionados do equipamento e do técnico. O valor obtido estava dentro do intervalo aceitável, conforme a regra implementada.
+O método `validar()` verifica se código TAG, nome do equipamento,
+fabricante e modelo foram preenchidos.
 
-A compilação bem-sucedida também foi verificada após a inclusão dos métodos de atualização e exclusão. Essas operações ainda devem ser testadas individualmente antes de serem consideradas validadas em execução.
+### 6.3. Validação da medição
 
-## 9. Considerações finais
+O método `validar()` verifica:
 
-A implementação estabelece a estrutura inicial do MVP de calibração com Java, orientação a objetos e persistência SQLite.
+- Se o parâmetro avaliado foi informado.
+- Se os valores utilizados nos cálculos são numéricos e finitos.
+- Se o limite inferior não é superior ao limite máximo.
+- Se os identificadores do técnico e do equipamento são válidos.
 
-A separação entre modelos, classes DAO e classe principal facilita a manutenção do código. A validação da medição e a consulta com `JOIN` demonstram o fluxo central da aplicação.
+### 6.4. Avaliação por tolerância
 
-Como próximos passos, recomenda-se validar individualmente as operações de atualização e exclusão em dados controlados, revisar as regras de integridade do banco e consolidar o material explicativo solicitado para a entrega.
+A propriedade `status_resultado` compara a média das duas leituras com
+os limites mínimo e máximo informados.
 
-## 10. Execução do sistema
+A regra implementada é:
 
-A partir da pasta `calibracao-java`, executar:
+```text
+Se tolerancia_min <= media <= tolerancia_max:
+    Resultado = APROVADO
+Caso contrário:
+    Resultado = REPROVADO
+```
+
+Essa regra corresponde à avaliação inicial por tolerância. Ela não
+representa, isoladamente, uma decisão metrológica completa que considere
+incerteza de medição ou regras adicionais da empresa.
+
+---
+
+## 7. Tratamento de erros
+
+O programa principal `05_main.py` utiliza tratamento de exceções para
+identificar falhas durante a execução.
+
+| Exceção | Tratamento |
+| :--- | :--- |
+| `ValueError` | Informa problemas de validação dos dados. |
+| `sqlite3.IntegrityError` | Informa violações de integridade do banco, como restrições de unicidade ou de chaves estrangeiras. |
+| `sqlite3.Error` | Informa erros relacionados ao SQLite. |
+| `OSError` | Informa falhas de acesso a arquivos ou ao sistema operacional. |
+
+O tratamento de exceções impede que essas falhas sejam apresentadas
+simplesmente como resultados normais do programa.
+
+As mensagens exibidas no terminal ajudam a identificar a categoria do
+problema ocorrido.
+
+---
+
+## 8. Fluxo funcional do MVP
+
+O arquivo `05_main.py` demonstra o fluxo básico de utilização do sistema.
+
+1. Inicializa a camada de acesso ao banco de dados.
+2. Consulta a existência do técnico reservado para demonstração.
+3. Consulta a existência do equipamento reservado para demonstração.
+4. Cria os registros de demonstração somente quando necessário.
+5. Verifica se a medição de demonstração já foi registrada.
+6. Instancia um objeto `Medicao` com duas leituras e seus limites de tolerância.
+7. Calcula a média e o desvio padrão e avalia o resultado.
+8. Persiste a medição no SQLite, quando ainda não existe.
+9. Executa uma consulta com `INNER JOIN`.
+10. Exibe no terminal um relatório com os dados das medições cadastradas.
+
+A demonstração utiliza registros identificados especificamente para teste,
+sem representar resultados reais de calibração.
+
+A verificação dos registros de demonstração evita repetir os mesmos
+cadastros a cada execução normal do programa.
+
+---
+
+## 9. Como executar e validar
+
+A aplicação pode ser executada pelo terminal integrado do VS Code.
+
+Na pasta `versao_python`, execute:
 
 ```powershell
-mvn clean compile
-mvn exec:java "-Dexec.mainClass=br.com.schulz.Main"
+py -m py_compile 05_main.py classes\__init__.py classes\tecnico.py classes\equipamento.py classes\medicao.py classes\banco_dados.py
 ```
 
-O banco SQLite utilizado está na pasta principal do projeto, um nível acima de `calibracao-java`.
+Em seguida, execute:
+
+```powershell
+py 05_main.py
+```
+
+A execução deve demonstrar o cadastro ou a reutilização dos dados de teste,
+o cálculo da média e do desvio padrão, a avaliação por tolerância e a
+exibição do relatório de medições.
+
+Para o exemplo de demonstração utilizado no programa:
+
+- Valor nominal: 10,00.
+- Limite mínimo: 9,90.
+- Limite máximo: 10,10.
+- Primeira leitura: 10,02.
+- Segunda leitura: 10,04.
+- Média: 10,03.
+- Resultado por tolerância: APROVADO.
+
+A documentação pode ser visualizada no VS Code utilizando
+**Ctrl + Shift + V**.
+
+---
+
+## 10. Limitações e próximos passos
+
+O MVP implementado atende à primeira etapa de estruturação das classes,
+validação inicial, persistência e demonstração de consultas relacionais.
+
+As seguintes funcionalidades ainda não estão implementadas nesta versão:
+
+- Importação dos parâmetros diretamente da planilha Excel.
+- Persistência individual das duas leituras e do desvio padrão.
+- Cálculo completo da incerteza de medição conforme o processo da empresa.
+- Geração automática do certificado de calibração.
+- Exclusão de registros por meio de métodos específicos de persistência.
+
+Essas funcionalidades não devem ser consideradas concluídas nesta entrega.
+
+A evolução posterior deverá preservar a integridade do banco e validar as
+regras de negócio antes de gerar documentos de calibração.
+
+---
+
+## 11. Conclusão
+
+A AV03 representa a transição da modelagem do banco de dados para a
+implementação de uma primeira versão funcional do sistema.
+
+A utilização de classes separadas, a centralização das operações SQL,
+a validação dos dados e a demonstração de consultas relacionais estabelecem
+uma base organizada para as próximas etapas do projeto.
+
+A implementação atual permite demonstrar os fundamentos de POO em Python,
+a persistência no SQLite e a avaliação inicial de medições por tolerância,
+mantendo explícitas as funcionalidades que ainda precisam ser desenvolvidas.

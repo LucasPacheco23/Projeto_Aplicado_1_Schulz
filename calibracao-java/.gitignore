@@ -1,8 +1,0 @@
-# Arquivos gerados pelo Maven
-target/
-
-# Arquivos temporários e logs
-*.log
-
-# Configurações locais do VS Code
-.vscode/
