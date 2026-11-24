@@ -15,6 +15,7 @@ class Medicao:
     tolerancia_max: float
     medida_1: float
     medida_2: float
+    data_medicao: str
     id_medicao: Optional[int] = None
 
     def validar(self) -> None:
