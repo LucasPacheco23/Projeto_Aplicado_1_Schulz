@@ -1,13 +1,13 @@
-
 import sqlite3
 
 from classes import BancoDados, Tecnico, Equipamento, Medicao
+from gerador_certificado import importar_planilha
 
 
 # Identificadores exclusivos para os registros de demonstração.
-MATRICULA_TESTE = "TESTE-AV03-001"
-TAG_TESTE = "TESTE-AV03-001"
-PARAMETRO_TESTE = "Parâmetro demonstrativo AV03"
+MATRICULA_TESTE = "TESTE-AV03-004"
+TAG_TESTE = "500008"
+PARAMETRO_TESTE = "Parâmetro demonstrativo AV04"
 
 
 def obter_tecnico_teste(banco: BancoDados) -> Tecnico:
@@ -25,7 +25,7 @@ def obter_tecnico_teste(banco: BancoDados) -> Tecnico:
         )
 
     tecnico = Tecnico(
-        nome_tecnico="Técnico de Demonstração AV03",
+        nome_tecnico="José A. Rosa Jr",
         matricula=MATRICULA_TESTE,
         email="teste.av03@example.com",
         setor="Metrologia",
@@ -137,11 +137,13 @@ def main() -> None:
         tecnico = obter_tecnico_teste(banco)
         equipamento = obter_equipamento_teste(banco)
 
-        registrar_medicao_teste(
+        '''registrar_medicao_teste(
             banco,
             tecnico,
             equipamento,
-        )
+        )'''
+
+        cabecalho, medicoes = importar_planilha(r"dados_excel\Registro MMC.xlsx", banco)
 
         exibir_relatorio(banco)
 

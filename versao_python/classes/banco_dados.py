@@ -58,6 +58,12 @@ class BancoDados:
                 (matricula,),
             ).fetchone()
 
+    def buscar_tecnico_por_nome(self, nome_tecnico: str):
+        with closing(self.conectar()) as conexao:
+                    return conexao.execute(
+                        "SELECT * FROM tecnico WHERE nome_tecnico = ?",
+                        (nome_tecnico,),
+                    ).fetchone()
     # ==========================================================
     # EQUIPAMENTO
     # ==========================================================
@@ -110,9 +116,10 @@ class BancoDados:
                         tolerancia_min,
                         tolerancia_max,
                         valor_obtido,
-                        status_resultado
+                        status_resultado,
+                        data_medicao
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         medicao.id_equipamento,
@@ -123,6 +130,7 @@ class BancoDados:
                         medicao.tolerancia_max,
                         medicao.media,
                         medicao.status_resultado,
+                        medicao.data_medicao
                     ),
                 )
                 medicao.id_medicao = cursor.lastrowid
